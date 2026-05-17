@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="es" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roma Cuestionario</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh; padding: 20px; color: #333;
+}
+.container { max-width: 700px; margin: 0 auto; }
+.header { text-align: center; color: #fff; padding: 30px 20px; }
+.header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; text-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+.header .meta { font-size: 14px; opacity: 0.9; }
+.progress-bar { background: rgba(255,255,255,0.3); border-radius: 10px; height: 8px; margin: 20px 0; overflow: hidden; }
+.progress-fill { background: #fff; height: 100%; width: 0%; transition: width 0.4s ease; border-radius: 10px; }
+.question { background: #fff; border-radius: 16px; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); display: none; }
+.question.active { display: block; }
+.q-header { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 13px; color: #888; }
+.q-number { font-weight: 600; color: #667eea; }
+.q-text { font-size: 18px; font-weight: 600; line-height: 1.5; margin-bottom: 25px; color: #222; }
+.options { display: flex; flex-direction: column; gap: 12px; }
+.option-wrapper { display: flex; flex-direction: column; }
+.option {
+  display: flex; align-items: flex-start; gap: 14px; padding: 16px 18px;
+  border: 2px solid #e8e8e8; border-radius: 12px; background: #fafafa;
+  cursor: pointer; transition: all 0.2s; text-align: left; font-size: 15px; width: 100%;
+}
+[dir="rtl"] .option { text-align: right; flex-direction: row-reverse; }
+.option:hover:not(.disabled) { border-color: #667eea; background: #f5f3ff; }
+.option.selected { border-color: #667eea; background: #ede9fe; }
+.option.correct { border-color: #22c55e; background: #dcfce7; }
+.option.incorrect { border-color: #ef4444; background: #fee2e2; }
+.option.disabled { cursor: default; }
+.option.show-correct { border-color: #22c55e; background: #dcfce7; }
+.opt-label {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 50%; background: #e8e8e8;
+  font-weight: 700; font-size: 14px; flex-shrink: 0;
+}
+.option.selected .opt-label { background: #667eea; color: #fff; }
+.option.correct .opt-label { background: #22c55e; color: #fff; }
+.option.incorrect .opt-label { background: #ef4444; color: #fff; }
+.option.show-correct .opt-label { background: #22c55e; color: #fff; }
+.opt-text { padding-top: 5px; line-height: 1.5; }
+
+/* Individual option feedback */
+.option-feedback {
+  margin: 8px 0 4px 46px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+[dir="rtl"] .option-feedback { margin-left: 0; margin-right: 46px; }
+.option-feedback.correct-feedback {
+  background: #dcfce7;
+  border-left: 3px solid #22c55e;
+}
+.option-feedback.incorrect-feedback {
+  background: #fef3f2;
+  border-left: 3px solid #fca5a5;
+}
+[dir="rtl"] .option-feedback.correct-feedback,
+[dir="rtl"] .option-feedback.incorrect-feedback {
+  border-left: none;
+  border-right: 3px solid;
+}
+[dir="rtl"] .option-feedback.correct-feedback { border-right-color: #22c55e; }
+[dir="rtl"] .option-feedback.incorrect-feedback { border-right-color: #fca5a5; }
+.feedback-status {
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.feedback-status.correct { color: #166534; }
+.feedback-status.incorrect { color: #991b1b; }
+.feedback-rationale { color: #444; }
+
+/* Hint box */
+.hint-box {
+  margin: 12px 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+}
+.hint-toggle {
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: #92400e;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hint-toggle:hover { background: #fef3c7; }
+.hint-content {
+  padding: 0 16px;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s, padding 0.3s;
+  font-size: 14px;
+  color: #78350f;
+  line-height: 1.5;
+}
+.hint-box.show .hint-content {
+  padding: 0 16px 12px;
+  max-height: 200px;
+}
+
+.next-btn {
+  margin-top: 20px; width: 100%; padding: 14px;
+  background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none;
+  border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.next-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102,126,234,0.4); }
+.hidden { display: none !important; }
+.results { background: #fff; border-radius: 16px; padding: 40px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.15); display: none; }
+.results.active { display: block; }
+.results h2 { font-size: 28px; margin-bottom: 10px; color: #333; }
+.results .score { font-size: 64px; font-weight: 700; color: #667eea; margin: 20px 0; }
+.results .score-text { font-size: 18px; color: #666; margin-bottom: 30px; }
+.restart-btn {
+  padding: 14px 40px; background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;
+}
+
+/* Math CSS */
+.math, .math-block { font-family: "Cambria Math", "Times New Roman", Times, serif; font-style: italic; }
+.math-block { display: block; text-align: center; margin: 10px 0; font-size: 110%; }
+.frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; margin: 0 3px; font-size: 0.9em; }
+.frac-num { border-bottom: 1px solid currentColor; padding: 0 4px 2px; line-height: 1.2; }
+.frac-den { padding: 2px 4px 0; line-height: 1.2; }
+.sqrt { white-space: nowrap; }
+.sqrt-content { border-top: 1px solid currentColor; padding: 0 3px; margin-left: 2px; }
+sup, sub { font-size: 0.75em; }
+sup { vertical-align: super; }
+sub { vertical-align: sub; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Roma Cuestionario</h1>
+    <div class="meta">12 preguntas</div>
+    <div class="progress-bar"><div class="progress-fill"></div></div>
+  </div>
+  <div id="quiz-container">
+        <div class="question" data-index="0">
+          <div class="q-header">
+            <span class="q-number">Pregunta 1</span>
+            <span class="q-of">/ 12</span>
+          </div>
+          <div class="q-text">¿Aproximadamente hace cuántos años fue fundada la civilización de Roma según los registros históricos?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Busca una cifra que represente el paso de muchísimos años desde la Antigüedad hasta la actualidad.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="true" data-rationale="Esta cifra sitúa la fundación de Roma en la Edad Antigua, marcando el inicio de una de las civilizaciones más duraderas de la historia.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Más de 2.800 años</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Esta cifra sitúa la fundación de Roma en la Edad Antigua, marcando el inicio de una de las civilizaciones más duraderas de la historia.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="false" data-rationale="Aunque es una cifra antigua, se asocia más con el surgimiento de las primeras civilizaciones mesopotámicas o egipcias que con Roma.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Más de 5.000 años</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Aunque es una cifra antigua, se asocia más con el surgimiento de las primeras civilizaciones mesopotámicas o egipcias que con Roma.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Hace 500 años el mundo estaba en el Renacimiento y el Imperio Romano ya había desaparecido hace siglos.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Exactamente 500 años</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Hace 500 años el mundo estaba en el Renacimiento y el Imperio Romano ya había desaparecido hace siglos.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Esta cifra es demasiado reciente y coincidiría más con la Baja Edad Media que con los orígenes de la civilización romana.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Cerca de 1.000 años</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Esta cifra es demasiado reciente y coincidiría más con la Baja Edad Media que con los orígenes de la civilización romana.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="1">
+          <div class="q-header">
+            <span class="q-number">Pregunta 2</span>
+            <span class="q-of">/ 12</span>
+          </div>
+          <div class="q-text">¿A orillas de qué río se fundó la ciudad de Roma tras la unión de varios pueblos?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Este río atraviesa la actual capital de Italia.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="El Nilo fue el eje central de la civilización egipcia, no de la romana.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Río Nilo</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">El Nilo fue el eje central de la civilización egipcia, no de la romana.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="false" data-rationale="El Danubio fue una de las fronteras naturales del imperio en su máxima expansión, pero no el lugar de su origen.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Río Danubio</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">El Danubio fue una de las fronteras naturales del imperio en su máxima expansión, pero no el lugar de su origen.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="El Ebro se encuentra en la península ibérica, territorio que Roma conquistó mucho después de su fundación.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Río Ebro</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">El Ebro se encuentra en la península ibérica, territorio que Roma conquistó mucho después de su fundación.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="true" data-rationale="La ubicación estratégica junto a este río permitió el abastecimiento de agua y la comunicación comercial desde sus inicios.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Río Tíber</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">La ubicación estratégica junto a este río permitió el abastecimiento de agua y la comunicación comercial desde sus inicios.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="2">
+          <div class="q-header">
+            <span class="q-number">Pregunta 3</span>
+            <span class="q-of">/ 12</span>
+          </div>
+          <div class="q-text">¿Cuál fue el orden cronológico de las formas de gobierno en la historia de Roma?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Piensa en cómo evolucionó el poder desde los reyes hasta el control total de una sola persona tras una crisis política.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="La República no fue el primer sistema, ya que surgió precisamente tras la expulsión de los últimos reyes.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">República, Monarquía e Imperio</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">La República no fue el primer sistema, ya que surgió precisamente tras la expulsión de los últimos reyes.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="false" data-rationale="Este orden es inverso; el Imperio fue la etapa final de la civilización romana antigua.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Imperio, República y Monarquía</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Este orden es inverso; el Imperio fue la etapa final de la civilización romana antigua.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="true" data-rationale="Roma comenzó con reyes, luego pasó a un sistema de políticos electos y finalmente a un mando único bajo el emperador.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Monarquía, República e Imperio</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Roma comenzó con reyes, luego pasó a un sistema de políticos electos y finalmente a un mando único bajo el emperador.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Aunque existieron dictadores temporales, estos términos no definen las tres grandes etapas estructurales de Roma.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Dictadura, Democracia y Monarquía</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Aunque existieron dictadores temporales, estos términos no definen las tres grandes etapas estructurales de Roma.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="3">
+          <div class="q-header">
+            <span class="q-number">Pregunta 4</span>
+            <span class="q-of">/ 12</span>
+          </div>
+          <div class="q-text">Durante la etapa de la República, ¿quiénes eran los encargados de tomar las decisiones políticas?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Recuerda que en esta etapa el poder estaba repartido y ya no existía una figura monárquica.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Los esclavos carecían de derechos y no podían participar en ninguna decisión del gobierno.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Los esclavos</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Los esclavos carecían de derechos y no podían participar en ninguna decisión del gobierno.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="false" data-rationale="Aunque los militares eran influyentes, el sistema republicano se basaba teóricamente en la gestión de los políticos en el Senado.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Solo los militares</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Aunque los militares eran influyentes, el sistema republicano se basaba teóricamente en la gestión de los políticos en el Senado.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="En la República ya no había reyes, pues ese sistema había quedado atrás.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Los reyes</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">En la República ya no había reyes, pues ese sistema había quedado atrás.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="true" data-rationale="En este sistema, las decisiones no recaían en una sola persona, sino en instituciones formadas por ciudadanos y políticos.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Los políticos</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">En este sistema, las decisiones no recaían en una sola persona, sino en instituciones formadas por ciudadanos y políticos.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="4">
+          <div class="q-header">
+            <span class="q-number">Pregunta 5</span>
+            <span class="q-of">/ 12</span>
+          </div>
+          <div class="q-text">¿Cómo se llamaba el territorio que actualmente ocupan España y Portugal cuando fue conquistado por los romanos?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">El nombre es la raíz etimológica de la palabra 'España'.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Galia era el nombre que los romanos daban al territorio que hoy es principalmente Francia.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Galia</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Galia era el nombre que los romanos daban al territorio que hoy es principalmente Francia.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Este término fue el que los romanos asignaron a toda la península ibérica tras su conquista.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Hispania</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Este término fue el que los romanos asignaron a toda la península ibérica tras su conquista.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Britania se refiere a las islas que hoy forman parte del Reino Unido.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Britania</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Britania se refiere a las islas que hoy forman parte del Reino Unido.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Italia era el corazón del imperio, pero es un territorio geográficamente distinto a la península ibérica.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Italia</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Italia era el corazón del imperio, pero es un territorio geográficamente distinto a la península ibérica.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="5">
+          <div class="q-header">
+            <span class="q-number">Pregunta 6</span>
+            <span class="q-of">/ 12</span>
+          </div>
+          <div class="q-text">¿Qué nombre recibía la organización del ejército romano encargada de conquistar territorios y mantener la paz?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Es el nombre que también define al conjunto de soldados conocidos como legionarios.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Este concepto se asocia a grupos militares menos organizados o tribales, lo opuesto a la disciplina romana.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Horda</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Este concepto se asocia a grupos militares menos organizados o tribales, lo opuesto a la disciplina romana.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="La legión era la unidad de élite del ejército romano, conocida por su disciplina y fuerza.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Legión</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">La legión era la unidad de élite del ejército romano, conocida por su disciplina y fuerza.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Este término se suele referir específicamente a las fuerzas navales, mientras que la legión era primordialmente terrestre.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Armada</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Este término se suele referir específicamente a las fuerzas navales, mientras que la legión era primordialmente terrestre.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="La falange era una formación militar típica de los griegos, no de los romanos.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Falange</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">La falange era una formación militar típica de los griegos, no de los romanos.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="6">
+          <div class="q-header">
+            <span class="q-number">Pregunta 7</span>
+            <span class="q-of">/ 12</span>
+          </div>
+          <div class="q-text">¿Cuál de estos grupos sociales formaba la nobleza y poseía el control político y militar en Roma?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Este grupo se encontraba en la cima de la pirámide social romana.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="true" data-rationale="Los patricios eran la clase alta y descendientes de las familias fundadoras, concentrando la riqueza y el poder.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Los patricios</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Los patricios eran la clase alta y descendientes de las familias fundadoras, concentrando la riqueza y el poder.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="false" data-rationale="Los esclavos estaban en la base de la pirámide social y eran considerados propiedad.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Los esclavos</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Los esclavos estaban en la base de la pirámide social y eran considerados propiedad.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Los plebeyos representaban al pueblo trabajador, no a la nobleza con plenos poderes.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Los plebeyos</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Los plebeyos representaban al pueblo trabajador, no a la nobleza con plenos poderes.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Los artesanos formaban parte de la clase trabajadora (plebe) y no tenían privilegios de nobleza.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Los artesanos</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Los artesanos formaban parte de la clase trabajadora (plebe) y no tenían privilegios de nobleza.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="7">
+          <div class="q-header">
+            <span class="q-number">Pregunta 8</span>
+            <span class="q-of">/ 12</span>
+          </div>
+          <div class="q-text">¿De qué lengua antigua derivan idiomas actuales como el castellano, el francés o el catalán?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Es la lengua que hablaban los antiguos romanos.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="El árabe influyó mucho en el castellano por la historia de España, pero no es su origen estructural.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Árabe</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">El árabe influyó mucho en el castellano por la historia de España, pero no es su origen estructural.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="false" data-rationale="El inglés es una lengua germánica, no una lengua romance derivada de la cultura romana.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Inglés</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">El inglés es una lengua germánica, no una lengua romance derivada de la cultura romana.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Aunque influyó en el vocabulario, el griego no es la lengua madre de las lenguas románicas.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Griego</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Aunque influyó en el vocabulario, el griego no es la lengua madre de las lenguas románicas.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="true" data-rationale="El latín fue el idioma oficial de Roma y se expandió por todo el imperio, evolucionando en las lenguas que hablamos hoy.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Latín</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">El latín fue el idioma oficial de Roma y se expandió por todo el imperio, evolucionando en las lenguas que hablamos hoy.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="8">
+          <div class="q-header">
+            <span class="q-number">Pregunta 9</span>
+            <span class="q-of">/ 12</span>
+          </div>
+          <div class="q-text">¿Qué término define mejor la creencia de los romanos en muchos dioses diferentes?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Busca el concepto que describe la multiplicidad de divinidades.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Monoteísmo significa creer en un solo dios, algo que no caracterizaba a la religión romana tradicional.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Monoteístas</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Monoteísmo significa creer en un solo dios, algo que no caracterizaba a la religión romana tradicional.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Los romanos adoptaron y adaptaron numerosos dioses de diversas culturas, rindiendo culto a muchos a la vez.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Politeístas</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Los romanos adoptaron y adaptaron numerosos dioses de diversas culturas, rindiendo culto a muchos a la vez.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="El ateísmo es la falta de creencia en dioses, mientras que la religión era fundamental en la vida romana.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Ateos</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">El ateísmo es la falta de creencia en dioses, mientras que la religión era fundamental en la vida romana.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="El cristianismo es monoteísta y solo se convirtió en la religión oficial de Roma al final de su historia.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Cristianos</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">El cristianismo es monoteísta y solo se convirtió en la religión oficial de Roma al final de su historia.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="9">
+          <div class="q-header">
+            <span class="q-number">Pregunta 10</span>
+            <span class="q-of">/ 12</span>
+          </div>
+          <div class="q-text">¿Cuál de estas construcciones romanas tenía como función principal el transporte de agua a las ciudades?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Esta palabra proviene de términos que significan 'conducir agua'.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="El Coliseo era un lugar dedicado al espectáculo y al ocio, no al suministro de agua.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Coliseos</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">El Coliseo era un lugar dedicado al espectáculo y al ocio, no al suministro de agua.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="true" data-rationale="Los acueductos eran impresionantes obras de ingeniería que usaban la gravedad para llevar agua dulce a los centros urbanos.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Acueductos</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Los acueductos eran impresionantes obras de ingeniería que usaban la gravedad para llevar agua dulce a los centros urbanos.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="Las calzadas eran las carreteras de piedra que comunicaban las ciudades por tierra.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Calzadas</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Las calzadas eran las carreteras de piedra que comunicaban las ciudades por tierra.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Los puentes servían para cruzar los ríos, no para canalizar el agua a largas distancias.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Puentes</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Los puentes servían para cruzar los ríos, no para canalizar el agua a largas distancias.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="10">
+          <div class="q-header">
+            <span class="q-number">Pregunta 11</span>
+            <span class="q-of">/ 12</span>
+          </div>
+          <div class="q-text">¿Qué actividades de ocio eran típicas en el Coliseo romano?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Imagina grandes luchas y competiciones de carros con guerreros adiestrados.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="false" data-rationale="Para bañarse, los romanos acudían a los balnearios o termas, no al Coliseo.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Baños públicos</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Para bañarse, los romanos acudían a los balnearios o termas, no al Coliseo.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="false" data-rationale="Aunque había teatros en Roma, el Coliseo se especializaba en espectáculos de acción y lucha.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Representaciones teatrales</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Aunque había teatros en Roma, el Coliseo se especializaba en espectáculos de acción y lucha.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="true" data-rationale="Estos eventos eran masivos y servían para entretener a la población de la capital del imperio.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Carreras de caballos y gladiadores</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Estos eventos eran masivos y servían para entretener a la población de la capital del imperio.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="Los debates tenían lugar en el Foro o en el Senado, no en una arena de espectáculos.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Debates políticos</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">Los debates tenían lugar en el Foro o en el Senado, no en una arena de espectáculos.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      
+        <div class="question" data-index="11">
+          <div class="q-header">
+            <span class="q-number">Pregunta 12</span>
+            <span class="q-of">/ 12</span>
+          </div>
+          <div class="q-text">¿Cómo se llamaba la moneda de plata común utilizada por los romanos en su comercio?</div>
+          
+        <div class="hint-box">
+          <button class="hint-toggle" onclick="this.parentElement.classList.toggle('show')">
+            💡 Hint
+          </button>
+          <div class="hint-content">Es un nombre clásico de la numismática romana que empieza con la letra 'D'.</div>
+        </div>
+      
+          <div class="options">
+        <div class="option-wrapper">
+          <button class="option" data-label="A" data-correct="true" data-rationale="El denario fue la moneda más importante del sistema monetario romano durante siglos.">
+            <span class="opt-label">A</span>
+            <span class="opt-text">Denario</span>
+          </button>
+          <div class="option-feedback hidden" data-for="A">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">El denario fue la moneda más importante del sistema monetario romano durante siglos.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="B" data-correct="false" data-rationale="El euro es la moneda moderna de la Unión Europea.">
+            <span class="opt-label">B</span>
+            <span class="opt-text">Euro</span>
+          </button>
+          <div class="option-feedback hidden" data-for="B">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">El euro es la moneda moderna de la Unión Europea.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="C" data-correct="false" data-rationale="El dólar es una moneda contemporánea originaria de América.">
+            <span class="opt-label">C</span>
+            <span class="opt-text">Dólar</span>
+          </button>
+          <div class="option-feedback hidden" data-for="C">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">El dólar es una moneda contemporánea originaria de América.</div>
+          </div>
+        </div>
+      
+        <div class="option-wrapper">
+          <button class="option" data-label="D" data-correct="false" data-rationale="La dracma era una unidad monetaria utilizada principalmente por los griegos.">
+            <span class="opt-label">D</span>
+            <span class="opt-text">Dracma</span>
+          </button>
+          <div class="option-feedback hidden" data-for="D">
+            <div class="feedback-status"></div>
+            <div class="feedback-rationale">La dracma era una unidad monetaria utilizada principalmente por los griegos.</div>
+          </div>
+        </div>
+      </div>
+          <button class="next-btn hidden">Siguiente pregunta →</button>
+        </div>
+      </div>
+  <div class="results" id="results">
+    <h2>¡Cuestionario completado!</h2>
+    <div class="score" id="score">0%</div>
+    <div class="score-text" id="score-text"></div>
+    <button class="restart-btn" onclick="restart()">Intentar de nuevo</button>
+  </div>
+</div>
+<script>
+const quizData = [{"question":"¿Aproximadamente hace cuántos años fue fundada la civilización de Roma según los registros históricos?","hint":"Busca una cifra que represente el paso de muchísimos años desde la Antigüedad hasta la actualidad.","options":[{"label":"A","text":"Más de 2.800 años","isCorrect":true,"rationale":"Esta cifra sitúa la fundación de Roma en la Edad Antigua, marcando el inicio de una de las civilizaciones más duraderas de la historia."},{"label":"B","text":"Más de 5.000 años","isCorrect":false,"rationale":"Aunque es una cifra antigua, se asocia más con el surgimiento de las primeras civilizaciones mesopotámicas o egipcias que con Roma."},{"label":"C","text":"Exactamente 500 años","isCorrect":false,"rationale":"Hace 500 años el mundo estaba en el Renacimiento y el Imperio Romano ya había desaparecido hace siglos."},{"label":"D","text":"Cerca de 1.000 años","isCorrect":false,"rationale":"Esta cifra es demasiado reciente y coincidiría más con la Baja Edad Media que con los orígenes de la civilización romana."}]},{"question":"¿A orillas de qué río se fundó la ciudad de Roma tras la unión de varios pueblos?","hint":"Este río atraviesa la actual capital de Italia.","options":[{"label":"A","text":"Río Nilo","isCorrect":false,"rationale":"El Nilo fue el eje central de la civilización egipcia, no de la romana."},{"label":"B","text":"Río Danubio","isCorrect":false,"rationale":"El Danubio fue una de las fronteras naturales del imperio en su máxima expansión, pero no el lugar de su origen."},{"label":"C","text":"Río Ebro","isCorrect":false,"rationale":"El Ebro se encuentra en la península ibérica, territorio que Roma conquistó mucho después de su fundación."},{"label":"D","text":"Río Tíber","isCorrect":true,"rationale":"La ubicación estratégica junto a este río permitió el abastecimiento de agua y la comunicación comercial desde sus inicios."}]},{"question":"¿Cuál fue el orden cronológico de las formas de gobierno en la historia de Roma?","hint":"Piensa en cómo evolucionó el poder desde los reyes hasta el control total de una sola persona tras una crisis política.","options":[{"label":"A","text":"República, Monarquía e Imperio","isCorrect":false,"rationale":"La República no fue el primer sistema, ya que surgió precisamente tras la expulsión de los últimos reyes."},{"label":"B","text":"Imperio, República y Monarquía","isCorrect":false,"rationale":"Este orden es inverso; el Imperio fue la etapa final de la civilización romana antigua."},{"label":"C","text":"Monarquía, República e Imperio","isCorrect":true,"rationale":"Roma comenzó con reyes, luego pasó a un sistema de políticos electos y finalmente a un mando único bajo el emperador."},{"label":"D","text":"Dictadura, Democracia y Monarquía","isCorrect":false,"rationale":"Aunque existieron dictadores temporales, estos términos no definen las tres grandes etapas estructurales de Roma."}]},{"question":"Durante la etapa de la República, ¿quiénes eran los encargados de tomar las decisiones políticas?","hint":"Recuerda que en esta etapa el poder estaba repartido y ya no existía una figura monárquica.","options":[{"label":"A","text":"Los esclavos","isCorrect":false,"rationale":"Los esclavos carecían de derechos y no podían participar en ninguna decisión del gobierno."},{"label":"B","text":"Solo los militares","isCorrect":false,"rationale":"Aunque los militares eran influyentes, el sistema republicano se basaba teóricamente en la gestión de los políticos en el Senado."},{"label":"C","text":"Los reyes","isCorrect":false,"rationale":"En la República ya no había reyes, pues ese sistema había quedado atrás."},{"label":"D","text":"Los políticos","isCorrect":true,"rationale":"En este sistema, las decisiones no recaían en una sola persona, sino en instituciones formadas por ciudadanos y políticos."}]},{"question":"¿Cómo se llamaba el territorio que actualmente ocupan España y Portugal cuando fue conquistado por los romanos?","hint":"El nombre es la raíz etimológica de la palabra 'España'.","options":[{"label":"A","text":"Galia","isCorrect":false,"rationale":"Galia era el nombre que los romanos daban al territorio que hoy es principalmente Francia."},{"label":"B","text":"Hispania","isCorrect":true,"rationale":"Este término fue el que los romanos asignaron a toda la península ibérica tras su conquista."},{"label":"C","text":"Britania","isCorrect":false,"rationale":"Britania se refiere a las islas que hoy forman parte del Reino Unido."},{"label":"D","text":"Italia","isCorrect":false,"rationale":"Italia era el corazón del imperio, pero es un territorio geográficamente distinto a la península ibérica."}]},{"question":"¿Qué nombre recibía la organización del ejército romano encargada de conquistar territorios y mantener la paz?","hint":"Es el nombre que también define al conjunto de soldados conocidos como legionarios.","options":[{"label":"A","text":"Horda","isCorrect":false,"rationale":"Este concepto se asocia a grupos militares menos organizados o tribales, lo opuesto a la disciplina romana."},{"label":"B","text":"Legión","isCorrect":true,"rationale":"La legión era la unidad de élite del ejército romano, conocida por su disciplina y fuerza."},{"label":"C","text":"Armada","isCorrect":false,"rationale":"Este término se suele referir específicamente a las fuerzas navales, mientras que la legión era primordialmente terrestre."},{"label":"D","text":"Falange","isCorrect":false,"rationale":"La falange era una formación militar típica de los griegos, no de los romanos."}]},{"question":"¿Cuál de estos grupos sociales formaba la nobleza y poseía el control político y militar en Roma?","hint":"Este grupo se encontraba en la cima de la pirámide social romana.","options":[{"label":"A","text":"Los patricios","isCorrect":true,"rationale":"Los patricios eran la clase alta y descendientes de las familias fundadoras, concentrando la riqueza y el poder."},{"label":"B","text":"Los esclavos","isCorrect":false,"rationale":"Los esclavos estaban en la base de la pirámide social y eran considerados propiedad."},{"label":"C","text":"Los plebeyos","isCorrect":false,"rationale":"Los plebeyos representaban al pueblo trabajador, no a la nobleza con plenos poderes."},{"label":"D","text":"Los artesanos","isCorrect":false,"rationale":"Los artesanos formaban parte de la clase trabajadora (plebe) y no tenían privilegios de nobleza."}]},{"question":"¿De qué lengua antigua derivan idiomas actuales como el castellano, el francés o el catalán?","hint":"Es la lengua que hablaban los antiguos romanos.","options":[{"label":"A","text":"Árabe","isCorrect":false,"rationale":"El árabe influyó mucho en el castellano por la historia de España, pero no es su origen estructural."},{"label":"B","text":"Inglés","isCorrect":false,"rationale":"El inglés es una lengua germánica, no una lengua romance derivada de la cultura romana."},{"label":"C","text":"Griego","isCorrect":false,"rationale":"Aunque influyó en el vocabulario, el griego no es la lengua madre de las lenguas románicas."},{"label":"D","text":"Latín","isCorrect":true,"rationale":"El latín fue el idioma oficial de Roma y se expandió por todo el imperio, evolucionando en las lenguas que hablamos hoy."}]},{"question":"¿Qué término define mejor la creencia de los romanos en muchos dioses diferentes?","hint":"Busca el concepto que describe la multiplicidad de divinidades.","options":[{"label":"A","text":"Monoteístas","isCorrect":false,"rationale":"Monoteísmo significa creer en un solo dios, algo que no caracterizaba a la religión romana tradicional."},{"label":"B","text":"Politeístas","isCorrect":true,"rationale":"Los romanos adoptaron y adaptaron numerosos dioses de diversas culturas, rindiendo culto a muchos a la vez."},{"label":"C","text":"Ateos","isCorrect":false,"rationale":"El ateísmo es la falta de creencia en dioses, mientras que la religión era fundamental en la vida romana."},{"label":"D","text":"Cristianos","isCorrect":false,"rationale":"El cristianismo es monoteísta y solo se convirtió en la religión oficial de Roma al final de su historia."}]},{"question":"¿Cuál de estas construcciones romanas tenía como función principal el transporte de agua a las ciudades?","hint":"Esta palabra proviene de términos que significan 'conducir agua'.","options":[{"label":"A","text":"Coliseos","isCorrect":false,"rationale":"El Coliseo era un lugar dedicado al espectáculo y al ocio, no al suministro de agua."},{"label":"B","text":"Acueductos","isCorrect":true,"rationale":"Los acueductos eran impresionantes obras de ingeniería que usaban la gravedad para llevar agua dulce a los centros urbanos."},{"label":"C","text":"Calzadas","isCorrect":false,"rationale":"Las calzadas eran las carreteras de piedra que comunicaban las ciudades por tierra."},{"label":"D","text":"Puentes","isCorrect":false,"rationale":"Los puentes servían para cruzar los ríos, no para canalizar el agua a largas distancias."}]},{"question":"¿Qué actividades de ocio eran típicas en el Coliseo romano?","hint":"Imagina grandes luchas y competiciones de carros con guerreros adiestrados.","options":[{"label":"A","text":"Baños públicos","isCorrect":false,"rationale":"Para bañarse, los romanos acudían a los balnearios o termas, no al Coliseo."},{"label":"B","text":"Representaciones teatrales","isCorrect":false,"rationale":"Aunque había teatros en Roma, el Coliseo se especializaba en espectáculos de acción y lucha."},{"label":"C","text":"Carreras de caballos y gladiadores","isCorrect":true,"rationale":"Estos eventos eran masivos y servían para entretener a la población de la capital del imperio."},{"label":"D","text":"Debates políticos","isCorrect":false,"rationale":"Los debates tenían lugar en el Foro o en el Senado, no en una arena de espectáculos."}]},{"question":"¿Cómo se llamaba la moneda de plata común utilizada por los romanos en su comercio?","hint":"Es un nombre clásico de la numismática romana que empieza con la letra 'D'.","options":[{"label":"A","text":"Denario","isCorrect":true,"rationale":"El denario fue la moneda más importante del sistema monetario romano durante siglos."},{"label":"B","text":"Euro","isCorrect":false,"rationale":"El euro es la moneda moderna de la Unión Europea."},{"label":"C","text":"Dólar","isCorrect":false,"rationale":"El dólar es una moneda contemporánea originaria de América."},{"label":"D","text":"Dracma","isCorrect":false,"rationale":"La dracma era una unidad monetaria utilizada principalmente por los griegos."}]}];
+const tr = {"correct":"¡Correcto!","incorrect":"Incorrecto","next":"Siguiente pregunta →","seeResults":"Ver resultados","complete":"¡Cuestionario completado!","scoreText":"Obtuviste {correct} de {total} correctas","tryAgain":"Intentar de nuevo","rightAnswer":"Respuesta correcta","notQuite":"No del todo"};
+let currentQ = 0, correctCount = 0, answered = false;
+
+function init() {
+  document.querySelectorAll('.question').forEach((q, i) => q.classList.toggle('active', i === 0));
+  updateProgress();
+  document.querySelectorAll('.option').forEach(opt => opt.addEventListener('click', () => selectOption(opt)));
+  document.querySelectorAll('.next-btn').forEach(btn => btn.addEventListener('click', nextQuestion));
+}
+
+function selectOption(opt) {
+  if (answered) return;
+  answered = true;
+  const q = opt.closest('.question');
+  const options = q.querySelectorAll('.option');
+  const nextBtn = q.querySelector('.next-btn');
+  const isCorrect = opt.dataset.correct === 'true';
+  
+  // Mark all options as disabled
+  options.forEach(o => o.classList.add('disabled'));
+  
+  // Style selected option
+  opt.classList.add('selected', isCorrect ? 'correct' : 'incorrect');
+  
+  // Show correct answer if wrong
+  if (!isCorrect) {
+    const correctOpt = [...options].find(o => o.dataset.correct === 'true');
+    if (correctOpt) correctOpt.classList.add('show-correct');
+  }
+  
+  if (isCorrect) correctCount++;
+  
+  // Show feedback for ALL options that have rationale
+  options.forEach(o => {
+    const wrapper = o.closest('.option-wrapper');
+    const feedback = wrapper.querySelector('.option-feedback');
+    const rationale = o.dataset.rationale;
+    const isThisCorrect = o.dataset.correct === 'true';
+    
+    if (rationale && rationale.trim()) {
+      feedback.classList.remove('hidden');
+      feedback.classList.add(isThisCorrect ? 'correct-feedback' : 'incorrect-feedback');
+      
+      const statusEl = feedback.querySelector('.feedback-status');
+      statusEl.className = 'feedback-status ' + (isThisCorrect ? 'correct' : 'incorrect');
+      statusEl.innerHTML = isThisCorrect 
+        ? '✓ ' + tr.rightAnswer
+        : '✗ ' + tr.notQuite;
+    }
+  });
+  
+  nextBtn.classList.remove('hidden');
+  if (currentQ === quizData.length - 1) nextBtn.textContent = tr.seeResults;
+}
+
+function nextQuestion() {
+  answered = false;
+  currentQ++;
+  if (currentQ >= quizData.length) { showResults(); return; }
+  document.querySelectorAll('.question').forEach((q, i) => q.classList.toggle('active', i === currentQ));
+  updateProgress();
+}
+
+function updateProgress() {
+  document.querySelector('.progress-fill').style.width = (currentQ / quizData.length * 100) + '%';
+}
+
+function showResults() {
+  document.querySelectorAll('.question').forEach(q => q.classList.remove('active'));
+  document.getElementById('results').classList.add('active');
+  const pct = Math.round((correctCount / quizData.length) * 100);
+  document.getElementById('score').textContent = pct + '%';
+  document.getElementById('score-text').textContent = tr.scoreText.replace('{correct}', correctCount).replace('{total}', quizData.length);
+  document.querySelector('.progress-fill').style.width = '100%';
+}
+
+function restart() {
+  currentQ = 0; correctCount = 0; answered = false;
+  document.getElementById('results').classList.remove('active');
+  document.querySelectorAll('.question').forEach((q, i) => {
+    q.classList.toggle('active', i === 0);
+    q.querySelectorAll('.option').forEach(o => o.classList.remove('selected', 'correct', 'incorrect', 'disabled', 'show-correct'));
+    q.querySelectorAll('.option-feedback').forEach(f => {
+      f.classList.add('hidden');
+      f.classList.remove('correct-feedback', 'incorrect-feedback');
+    });
+    const btn = q.querySelector('.next-btn');
+    btn.classList.add('hidden');
+    btn.textContent = tr.next;
+  });
+  updateProgress();
+}
+
+init();
+</script>
+</body>
+</html>
